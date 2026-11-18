@@ -17,6 +17,10 @@ from .validator import diff_areas, is_valid, validate
 MAX_UPDATE_CALLS = 5   # brief limit; we use 1 (2 only if the JSON is malformed)
 
 
+class _NoChange(Exception):
+    """The update only repeats facts that are already in the plan."""
+
+
 def count_messages(text: str) -> int:
     from .rules_extractor import split_messages      # one splitter for counting and reading
     return len(split_messages(text))
@@ -73,6 +77,15 @@ def ingest(text: str, name: str = "input", mode: str = "auto", llm: LLM | None =
                 m["sent_on"] = m["sent_on"] or today
             for f in new_facts:
                 f.sent_on = f.sent_on or today
+            # a message that only repeats facts already in the plan changes nothing: say so, store no duplicates
+            active = {f.ident: f.value for f in old_facts if f.status == "active"}
+            dups = [f for f in new_facts if f.ident in active and active[f.ident] == f.value]
+            if dups:
+                new_facts = [f for f in new_facts if f not in dups]
+                events.append(("info", "Already in the plan, ignored: "
+                               + "; ".join(f"{f.label()} = {fmt_val(f.value)}" for f in dups)))
+                if not new_facts:
+                    raise _NoChange
         if kind == "full":
             for f in new_facts:
                 f.is_new = False  # within one pack, nothing is 'late'; newest date simply wins
@@ -135,6 +148,10 @@ def ingest(text: str, name: str = "input", mode: str = "auto", llm: LLM | None =
                     m["status"], m["reason"] = "irrelevant", m["reason"] or "contains no planning fact"
                 else:
                     m["status"] = "accepted"
+    except _NoChange:
+        result.update(outcome="unchanged", affected=[],
+                      summary="Already applied - this message only repeats facts that are already in the plan, so nothing changed.")
+        msgs, new_facts, committed = [], [], False
     except LLMError as e:
         events.append(("warning", f"Model call failed: {e}. Nothing was changed."))
         result["summary"] = f"Failed: {e}"

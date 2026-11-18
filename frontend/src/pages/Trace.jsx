@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Card, Empty, Icon, Pill } from "../components/ui.jsx";
+import { Card, Empty, Icon, Pill, outcomeTone } from "../components/ui.jsx";
 import ChartCard from "../charts/ChartCard.jsx";
 import { HBars } from "../charts/Charts.jsx";
 import { StackBars } from "../charts/Charts2.jsx";
@@ -48,7 +48,7 @@ export default function Trace({ state }) {
         const rc = calls.filter((c) => c.run_id === r.id);
         return (
           <Card key={r.id} title={`Run ${r.id} · ${r.kind}`} icon="hub" sub={`${r.input_name} · ${r.duration_ms} ms`}
-            right={<Pill tone={r.outcome === "committed" ? "ok" : r.outcome === "invalid" ? "warn" : "bad"}>{r.outcome}</Pill>}>
+            right={<Pill tone={outcomeTone(r.outcome)}>{r.outcome}</Pill>}>
             <div className="muted" style={{ marginBottom: 10 }}>{r.summary}</div>
             {rc.map((c) => <Call key={c.id} c={c} />)}
             {rc.length === 0 && <div className="dim" style={{ marginBottom: 8 }}>No model call was made.</div>}

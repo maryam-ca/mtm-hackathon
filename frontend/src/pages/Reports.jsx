@@ -1,4 +1,4 @@
-import { Card, Empty, Icon, Pill } from "../components/ui.jsx";
+import { Card, Empty, Icon, Pill, outcomeTone } from "../components/ui.jsx";
 
 export default function Reports({ state, download }) {
   const { runs, plan } = state;
@@ -21,7 +21,7 @@ export default function Reports({ state, download }) {
           <div className="tablewrap"><table>
             <thead><tr><th>Run</th><th>Kind</th><th>Input</th><th>Outcome</th><th className="num">Tokens</th><th className="num">Time</th><th>Areas changed</th></tr></thead>
             <tbody>{runs.map((r) => <tr key={r.id}><td className="mono">{r.id}</td><td>{r.kind}</td><td>{r.input_name}</td>
-              <td><Pill tone={r.outcome === "committed" ? "ok" : r.outcome === "invalid" ? "warn" : "bad"}>{r.outcome}</Pill></td>
+              <td><Pill tone={outcomeTone(r.outcome)}>{r.outcome}</Pill></td>
               <td className="num">{r.tokens_in + r.tokens_out}</td><td className="num">{(r.duration_ms / 1000).toFixed(1)}s</td>
               <td className="mono" style={{ fontSize: 12 }}>{(r.affected_areas || []).join(", ") || "—"}</td></tr>)}</tbody></table></div>)}
       </Card>

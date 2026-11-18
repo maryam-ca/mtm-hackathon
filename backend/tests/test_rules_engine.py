@@ -44,3 +44,16 @@ def test_change_then_wrong_message():
     r2 = pipeline.ingest(read("update_wrong.txt"), "update_wrong.txt")
     s = pipeline.get_state()
     assert r2["outcome"] == "rejected" and s["plan"] == before and s["valid"]
+
+
+def test_resending_an_applied_message_changes_nothing():
+    pipeline.ingest(read("sample_pack.txt"), "sample_pack.txt")
+    pipeline.ingest(read("update_change.txt"), "update_change.txt")
+    before = pipeline.get_state()
+    r = pipeline.ingest(read("update_change.txt"), "update_change.txt")      # same message again
+    after = pipeline.get_state()
+    assert r["outcome"] == "unchanged" and r["affected"] == []
+    assert len(after["messages"]) == len(before["messages"])                  # no duplicate message stored
+    assert len(after["facts"]) == len(before["facts"])                        # no duplicate facts stored
+    assert after["plan"] == before["plan"] and after["valid"]
+    assert any("Already in the plan" in e["text"] for e in after["events"])

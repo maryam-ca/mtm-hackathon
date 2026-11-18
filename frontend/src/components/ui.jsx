@@ -58,3 +58,5 @@ export function Ring({ pct, color = "#38bdf8" }) {
 }
 
 export const val = (v) => (v !== null && typeof v === "object" ? JSON.stringify(v) : String(v));
+
+export const outcomeTone = (o) => (o === "committed" ? "ok" : o === "unchanged" ? "neutral" : o === "invalid" ? "warn" : "bad");

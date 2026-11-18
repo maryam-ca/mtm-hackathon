@@ -81,8 +81,8 @@ export default function App() {
         <main>
           {error && <div className="banner bad" role="alert"><Icon name="error" />{error}<button className="x" onClick={() => setError("")}><Icon name="close" size="sm" /></button></div>}
           {last && (
-            <div className={`banner ${["rejected", "failed"].includes(last.outcome) ? "bad" : last.outcome === "invalid" ? "warn" : "ok"}`}>
-              <Icon name={last.outcome === "committed" ? "check_circle" : "warning"} />
+            <div className={`banner ${["rejected", "failed"].includes(last.outcome) ? "bad" : last.outcome === "invalid" ? "warn" : last.outcome === "unchanged" ? "info" : "ok"}`}>
+              <Icon name={last.outcome === "committed" ? "check_circle" : last.outcome === "unchanged" ? "info" : "warning"} />
               <span><b>{last.kind === "full" ? "Full run" : "Update"} · {last.outcome}</b> — {last.summary} ({(last.duration_ms / 1000).toFixed(1)}s)</span>
               <button className="x" onClick={() => setLast(null)} aria-label="Dismiss"><Icon name="close" size="sm" /></button>
             </div>

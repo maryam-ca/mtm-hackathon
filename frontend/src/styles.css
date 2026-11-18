@@ -195,3 +195,5 @@ pre { margin: 0; background: var(--lowest); border-radius: 8px; padding: 12px; f
 .viewtoggle { font: 500 11px/14px var(--mono); padding: 4px 9px; }
 svg text { font-family: var(--mono); }
 @media (prefers-reduced-motion: reduce) { .hb-bar { transition: none; } }
+
+.banner.info { background: rgba(56, 189, 248, .10); border-color: rgba(56, 189, 248, .3); color: var(--primary); }
