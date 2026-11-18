@@ -65,22 +65,26 @@ An update makes **one** model call (a second only if the JSON is malformed, or a
 
 ## Tests
 ```
-python -m pytest                              # 18 offline tests — no key, no database needed
+python -m pytest                              # 23 offline tests — no key, no database needed
 python backend/eval/run_accuracy.py           # live model accuracy test (uses your Groq key, ≈ 11k tokens, ≈ 1 min)
 python backend/eval/run_accuracy.py reworded  # only cases whose name contains "reworded"
 ```
 **Unit/integration tests** (`backend/tests/`): planning numbers, conflict resolution, authority, rollback of a bad update, repeat-message handling,
 the offline engine end-to-end on the real `data/*.txt` files, and a check that every accuracy case is well-formed.
 
-**Accuracy test** (`backend/eval/`): the model reads 7 cases (`backend/eval/cases/*.json`, messages I wrote — the official pack, an unseen-style
-pack with different numbers/senders/wording/a mandatory generator, a changed figure, a wrong message, Roman Urdu, chit-chat that must yield no facts,
-an unauthorised budget change) and is scored on facts (precision/recall/F1), sender roles, evidence quotes found verbatim in the input, and whether
+**Accuracy test** (`backend/eval/`): the model reads 8 cases (`backend/eval/cases/*.json`, messages I wrote — the official pack, an unseen-style
+pack with different numbers/senders/wording/a mandatory generator, a judging-style pack (step-free access, a hall under maintenance, a 10% service charge,
+an irrelevant notice), a changed figure, a wrong message, Roman Urdu, chit-chat that must yield no facts, an unauthorised budget change) and is scored on facts (precision/recall/F1), sender roles, evidence quotes found verbatim in the input, and whether
 the resulting plan is valid with the right venue/total/people. Exit code 1 if F1 < 85%, any error, or a plan check fails. Report: `out/accuracy_report.json`.
 
-Latest run with `openai/gpt-oss-20b`: **fact F1 98.9%** (precision 97.9%, recall 100%), **roles 19/19**, **plan checks 2/2**, 0 errors, ≈ 11k tokens.
-Results vary a little from run to run (the API is not perfectly deterministic even at temperature 0); earlier runs found and led to fixes for:
-a message called relevant with no facts, JSON followed by extra text, inconsistent names ("Room D" vs "Hall D"), and "Jury secretary" read as a judge
-instead of the judging coordinator. Known imperfection: the model sometimes adds a derived fact (`event.teams = 50`) — harmless, the planner computes the same number.
+Results vary from run to run (the API is not perfectly deterministic even at temperature 0): full runs scored 88–99% fact F1 while fixes were added,
+and the judging-style case scored 100% facts with the correct plan (Hall 2, Rs 344,160). Run it yourself for current numbers (`out/accuracy_report.json`).
+Failures found by this test led to code fixes: a relevant message with no facts (retry), JSON followed by extra text (robust parser), inconsistent names
+("Room D" vs "Hall D", "printing" vs "printing bill" — subjects are matched to existing ones), "Jury secretary" read as a judge, and a model shifting hall
+names (a hall whose name and seats do not match the text is re-asked). Known imperfection: the model sometimes adds a derived fact (`event.teams = 50`) — harmless.
+
+**New kinds of constraint handled in code** (see `facts.py` vocabulary): step-free access (`event.step_free_required`, per-hall `accessible`), a hall that cannot be
+booked (`venue.unavailable`), a food service-charge percent, and the `office` role (e.g. a disability office may demand step-free access; a student group may not).
 
 ## Test-day checklist
 1. `git status` clean and `git log -1` equals the submitted hash (no edits after the freeze).

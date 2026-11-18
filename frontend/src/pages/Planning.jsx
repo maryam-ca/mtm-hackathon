@@ -56,17 +56,17 @@ export const Venue = guard(({ plan, checks }) => {
       <div className="split">
         <Card title="Options" icon="location_on">
           <div className="tablewrap"><table>
-            <thead><tr><th>Hall</th><th className="num">Seats</th><th className="num">Price</th><th>Generator</th><th>Result</th></tr></thead>
+            <thead><tr><th>Hall</th><th className="num">Seats</th><th className="num">Price</th><th>Generator</th><th>Step-free</th><th>Result</th></tr></thead>
             <tbody>{v.options.map((o) => {
               const rej = v.rejected.find((r) => r.name === o.name);
               return <tr key={o.name} className={o.name === v.chosen ? "hl" : ""}>
-                <td><b>{o.name}</b></td><td className="num">{o.seats}</td><td className="num">{rs(o.price)}</td><td>{o.generator ? "yes" : "no"}</td>
+                <td><b>{o.name}</b></td><td className="num">{o.seats}</td><td className="num">{rs(o.price)}</td><td>{o.generator ? "yes" : "no"}</td><td>{o.accessible ? "yes" : "no"}</td>
                 <td>{o.name === v.chosen ? <Pill tone="ok">CHOSEN</Pill> : rej ? <span className="dim">Rejected: {rej.reason}</span> : <span className="dim">Fits, costs more</span>}</td></tr>;
             })}</tbody></table></div>
         </Card>
         <div className="stack">
           <Card title={v.chosen} icon="apartment" sub="Selected">
-            <KV k="Seats" v={`${v.seats} (need ${plan.food.people})`} /><KV k="Generator" v={v.generator ? "yes" : "no"} /><KV k="Cost" v={rs(v.price)} />
+            <KV k="Seats" v={`${v.seats} (need ${plan.food.people})`} /><KV k="Generator" v={v.generator ? "yes" : "no"} /><KV k="Step-free access" v={v.accessible ? "yes" : "no"} /><KV k="Cost" v={rs(v.price)} />
             <Meter pct={(plan.food.people / v.seats) * 100} />
             <div className="label" style={{ marginTop: 6 }}>{Math.round((plan.food.people / v.seats) * 100)}% occupied</div>
           </Card>
@@ -131,7 +131,7 @@ export const Food = guard(({ plan, checks }) => {
         </Card>
         <Card title={`${f.qty} × ${f.type}`} icon="lunch_dining" sub="Order">
           <KV k="People on site" v={f.people} /><KV k="Boxes planned" v={f.qty} />
-          <KV k="Caterer order (if stated)" v={f.order_qty ?? "—"} /><KV k="Per head" v={rs(f.unit_price)} /><KV k="Total" v={rs(f.cost)} />
+          <KV k="Caterer order (if stated)" v={f.order_qty ?? "—"} /><KV k="Per head" v={rs(f.unit_price)} />{f.service_pct > 0 && <KV k={`Service charge (${f.service_pct}%)`} v={rs(f.service_charge)} />}<KV k="Total" v={rs(f.cost)} />
         </Card>
       </div>
       <div className="grid g2"><Checks checks={checks} area="food" /><Decisions plan={plan} match={/Food|People on site/} /></div>

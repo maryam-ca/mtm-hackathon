@@ -29,7 +29,7 @@ G, R, Y, B, X = "\033[32m", "\033[31m", "\033[33m", "\033[36m", "\033[0m"
 
 def norm(v):
     if isinstance(v, dict):
-        return json.dumps({k: norm(x) for k, x in sorted(v.items())}, sort_keys=True)
+        return json.dumps({k: norm(x) for k, x in sorted(v.items()) if x is not False}, sort_keys=True)   # absent == false
     if isinstance(v, bool):
         return str(v).lower()
     if isinstance(v, (int, float)):

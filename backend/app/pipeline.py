@@ -9,7 +9,7 @@ from sqlalchemy import select
 
 from . import db, extraction
 from .config import settings
-from .facts import Fact, View, check_authority, fmt_val, resolve
+from .facts import Fact, View, canonicalize_subjects, check_authority, fmt_val, resolve
 from .llm import LLM, LLMError
 from .planner import build_plan
 from .validator import diff_areas, is_valid, validate
@@ -71,6 +71,8 @@ def ingest(text: str, name: str = "input", mode: str = "auto", llm: LLM | None =
         known = sorted({f.subject for f in old_facts if f.subject and f.status == "active"}) if kind == "update" else []
         msgs, new_facts = extraction.extract(text, known, last_seq, llm,
                                              MAX_UPDATE_CALLS if kind == "update" else 2, calls)
+        for old_name, canon, key in canonicalize_subjects(old_facts, new_facts):
+            events.append(("info", f"{key}: '{old_name}' is the same item as the existing '{canon}' - treated as '{canon}'."))
         if kind == "update":   # an undated update message arrived "now": newest wins over the pack
             today = date.today().isoformat()
             for m in msgs:
@@ -241,7 +243,7 @@ def render_text(state: dict) -> str:
     L.append("=" * 78 + "\nPLAN" + (" (VALID)" if state["valid"] else " (HAS FAILING CHECKS)") + "\n" + "=" * 78)
     if plan and not plan["missing"]:
         v, f, j, b, s = (plan[k] for k in ("venue", "food", "judging", "budget", "schedule"))
-        L.append(f"Venue   : {v['chosen']} - {v['seats']} seats, Rs {v['price']:,}, generator={'yes' if v['generator'] else 'no'}")
+        L.append(f"Venue   : {v['chosen']} - {v['seats']} seats, Rs {v['price']:,}, generator={'yes' if v['generator'] else 'no'}, step-free={'yes' if v.get('accessible') else 'no'}")
         for r in v["rejected"]:
             L.append(f"          not chosen: {r['name']} ({r['reason']})")
         L.append("Schedule:")
@@ -254,6 +256,9 @@ def render_text(state: dict) -> str:
         for l in b["lines"]:
             L.append(f"  {l['item']:<44} Rs {l['amount']:>9,}")
         L.append(f"  {'TOTAL':<44} Rs {b['total']:>9,}  / limit Rs {b['limit']:,}  (remaining Rs {b['remaining']:,})")
+        over = b["total"] - b["limit"]
+        L.append(f"  FITS THE BUDGET: {'YES' if over <= 0 else 'NO - OVER BY Rs ' + format(over, ',')} "
+                 f"(Rs {b['total']:,} of Rs {b['limit']:,})")
         for p in b["proposals"]:
             L.append(f"  PENDING (not approved, excluded): {p['item']} Rs {p['amount']:,}")
         for n in plan["notes"]:
@@ -269,7 +274,14 @@ def render_text(state: dict) -> str:
         L.append(f"  #{m['seq']} {m['sender']} ({m['sent_on']}) [{m['status']}]: \"{m['quote']}\" -> {m['reason']}")
     if not bad:
         L.append("  none")
-    L.append("\n" + "=" * 78 + "\nTRACE\n" + "=" * 78)
+    AREA = {"reading": "reading messages"}
+    L.append("\n" + "=" * 78 + "\nTRACE SUMMARY - one line per model call\n" + "=" * 78)
+    for c in state["calls"]:
+        L.append(f"Call {c['n']} | {c['model']} | {AREA.get(c['area'], c['area'])} | "
+                 f"tokens: in {c['tokens_in']} + out {c['tokens_out']} = {c['tokens_in'] + c['tokens_out']}")
+    tt = state["totals"]
+    L.append(f"TOTAL | {tt['calls']} model call(s) | tokens: in {tt['tokens_in']} + out {tt['tokens_out']} = {tt['tokens_in'] + tt['tokens_out']}")
+    L.append("\n" + "=" * 78 + "\nFULL TRACE (input, output, decisions)\n" + "=" * 78)
     for r in state["runs"]:
         L.append(f"\n--- Run {r['id']} ({r['kind']}) input={r['input_name']} outcome={r['outcome']} {r['duration_ms']} ms")
         L.append(f"    {r['summary']}")

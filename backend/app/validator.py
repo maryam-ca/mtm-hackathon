@@ -23,7 +23,8 @@ def validate(plan: dict) -> list[dict]:
 
     # correct figures (recomputed)
     exp_people = I["headcount_override"] or I["students"] + I["staff"] + j["used"]
-    exp_total = (v["price"] + f["qty"] * f["unit_price"] + f["delivery"] + j["used"] * I["judge_fee"]
+    food_base = f["qty"] * f["unit_price"] + f["delivery"]
+    exp_total = (v["price"] + food_base + round(food_base * I["service_pct"] / 100) + j["used"] * I["judge_fee"]
                  + sum(l["amount"] for l in b["lines"] if l["area"] == "budget"))
     out.append(_c("figures", "budget", "Figures add up", exp_people == people and exp_total == b["total"]
                   and sum(l["amount"] for l in b["lines"]) == b["total"],
@@ -32,9 +33,11 @@ def validate(plan: dict) -> list[dict]:
                   f"Rs {b['total']:,} of Rs {b['limit']:,} (remaining Rs {b['remaining']:,})"))
 
     gen_ok = (not I["generator_required"]) or v["generator"]
-    out.append(_c("venue", "venue", "Venue fits everyone" + (" and has a generator" if I["generator_required"] else ""),
-                  v["seats"] >= people and gen_ok, f"{v['chosen']} seats {v['seats']} for {people} people"
-                  + ("" if gen_ok else "; no generator")))
+    access_ok = (not I["step_free_required"]) or v["accessible"]
+    out.append(_c("venue", "venue", "Venue fits everyone" + (" and has a generator" if I["generator_required"] else "")
+                  + (" and step-free access" if I["step_free_required"] else ""),
+                  v["seats"] >= people and gen_ok and access_ok, f"{v['chosen']} seats {v['seats']} for {people} people"
+                  + ("" if gen_ok else "; no generator") + ("" if access_ok else "; not step-free")))
 
     # meals
     meals_ok = f["qty"] >= people and (f["order_qty"] is None or f["order_qty"] >= people)

@@ -62,7 +62,8 @@ def fresh_db(tmp_path):
 
 
 def run_pack():
-    return pipeline.ingest("m1\n\nm2\n\nm3\n\nm4\n\nm5", "pack", llm=Stub(PACK))
+    text = (Path(__file__).resolve().parents[2] / "data" / "sample_pack.txt").read_text(encoding="utf-8")
+    return pipeline.ingest(text, "pack", llm=Stub(PACK))   # real pack text, so the hall check has real text to compare
 
 
 def test_full_run_is_valid_and_figures_right():
@@ -126,3 +127,81 @@ def test_missing_inputs_flagged_not_invented():
     pipeline.ingest("a\n\nb\n\nc\n\nd", "p", llm=Stub(pk))
     s = pipeline.get_state()
     assert not s["valid"] and s["plan"]["missing"]
+
+
+# ---------------------------------------------------------------- new kinds of constraint (judging-style pack)
+def _judging_payload(step_free_role="office"):
+    msgs = [M(1, "Registrar's office", "organizer", "2026-11-06", "Approved: a 4-hour"),
+            M(2, "Faisal Convention Centre", "vendor", "2026-11-02", "Seminar Room seats 100"),
+            M(3, "Student disability office", step_free_role, "2026-11-10", "Two registered participants"),
+            M(4, "Caterer", "vendor", "2026-10-25", "Biryani box Rs 700"),
+            M(5, "Caterer", "vendor", "2026-11-11", "Assalam o alaikum! Rates"),
+            M(6, "Judging lead", "coordinator", "2026-11-09", "15 judges have confirmed"),
+            M(7, "Finance", "finance", "2026-11-08", "Already paid from"),
+            M(8, "Student society", "student", "2026-11-12", "Can we have a photo booth"),
+            M(9, "Faisal Convention Centre", "vendor", "2026-11-13", "Sorry sir, Hall 3"),
+            M(10, "Library", "office", "2026-11-14", "The library will close", relevant=False, why="not about this event")]
+    facts = [F(1, "event.students", 120, "120 students"), F(1, "event.team_size", 4, "teams of 4"),
+             F(1, "event.duration_hours", 4, "4-hour"), F(1, "event.budget_total", 400000, "Rs 400,000"),
+             F(1, "event.staff", 8, "Eight staff"), F(1, "event.prayer_min", 20, "20-minute prayer"),
+             F(2, "venue.hall", dict(seats=100, price=35000, generator=False, accessible=False), "Seminar Room seats 100", "Seminar Room"),
+             F(2, "venue.hall", dict(seats=160, price=90000, generator=False, accessible=False), "Hall 1 seats 160", "Hall 1"),
+             F(2, "venue.hall", dict(seats=180, price=110000, generator=False, accessible=True), "Hall 2 seats 180", "Hall 2"),
+             F(2, "venue.hall", dict(seats=250, price=160000, generator=False, accessible=True), "Hall 3 seats 250", "Hall 3"),
+             F(3, "event.step_free_required", True, "must have step-free access"),
+             F(4, "food.price", dict(price=700, delivery=0), "Biryani box Rs 700", "biryani"),
+             F(5, "food.price", dict(price=850, delivery=0), "biryani box ab Rs 850", "biryani"),
+             F(5, "food.price", dict(price=600, delivery=0), "sandwich box Rs 600", "sandwich"),
+             F(5, "food.service_charge_pct", 10, "10% service charge"),
+             F(6, "judge.confirmed", 15, "15 judges"), F(6, "judge.fee", 4000, "Rs 4,000"),
+             F(6, "judge.min_per_team", 20, "20 minutes per team"), F(6, "judge.max_teams", 4, "at most four teams"),
+             F(7, "expense.committed", 60000, "trophies Rs 60,000", "trophies"),
+             F(7, "expense.committed", 15000, "banners Rs 15,000", "banners"),
+             F(8, "proposal.expense", 30000, "photo booth", "photo booth"),
+             F(9, "venue.unavailable", True, "Hall 3 is under maintenance", "Hall 3")]
+    return dict(messages=msgs, facts=facts)
+
+
+def test_step_free_service_charge_and_unavailable_hall():
+    text = (Path(__file__).resolve().parents[2] / "data" / "judging_pack.txt").read_text(encoding="utf-8")
+    r = pipeline.ingest(text, "judging_pack", llm=Stub(_judging_payload()))
+    s = pipeline.get_state()
+    p = s["plan"]
+    assert r["outcome"] == "committed", [c for c in s["checks"] if not c["ok"]]
+    assert p["venue"]["chosen"] == "Hall 2"                                   # cheapest hall that is step-free AND available
+    why = {x["name"]: x["reason"] for x in p["venue"]["rejected"]}
+    assert "not step-free" in why["Hall 1"] and "unavailable" in why["Hall 3"] and "seats" in why["Seminar Room"]
+    assert p["food"]["people"] == 136 and p["judging"]["used"] == 8
+    assert p["food"]["type"] == "biryani" and p["food"]["service_charge"] == 11560
+    assert p["food"]["cost"] == 127160                                        # 136 x 850 = 115,600 + 10%
+    assert p["budget"]["total"] == 110000 + 127160 + 32000 + 75000 == 344160
+    assert p["budget"]["proposals"][0]["affordable"] is True
+    assert all(c["ok"] for c in s["checks"])
+
+
+def test_only_an_office_or_organiser_may_demand_step_free_access():
+    text = (Path(__file__).resolve().parents[2] / "data" / "judging_pack.txt").read_text(encoding="utf-8")
+    pipeline.ingest(text, "judging_pack", llm=Stub(_judging_payload(step_free_role="student")))
+    s = pipeline.get_state()
+    assert s["plan"]["venue"]["chosen"] == "Hall 1"                           # the rule was NOT accepted from a student group
+    assert any(f["key"] == "event.step_free_required" and f["status"] == "rejected" for f in s["facts"])
+
+
+def test_renamed_item_is_not_double_counted():
+    """The model called the item 'printing bill'; the existing one is 'printing' - the correction must replace it, not add Rs 15,000 on top."""
+    run_pack()
+    upd = update_payload(M(1, "Finance", "finance", "2026-11-16", "Finance here. The printing"),
+                         [F(1, "expense.committed", 15000, "printing bill came in at Rs 15,000", "printing bill")])
+    r = pipeline.ingest("Finance here. The printing bill came in at Rs 15,000, not Rs 10,000.", "u", llm=Stub(upd))
+    s = pipeline.get_state()
+    assert r["outcome"] == "committed" and r["affected"] == ["budget"]
+    assert s["plan"]["budget"]["total"] == 120000 + 212400 + 85000 + 135000          # 552,400, not 567,400
+    assert any("same item as the existing 'printing'" in e["text"] for e in s["events"])
+
+
+def test_subject_matching_does_not_merge_different_halls():
+    from app.facts import Fact, canonicalize_subjects
+    old = [Fact("venue.hall", {}, "Hall A")]
+    new = [Fact("venue.hall", {}, "Hall B"), Fact("venue.hall", {}, "hall a ")]
+    canonicalize_subjects(old, new)
+    assert [f.subject for f in new] == ["Hall B", "Hall A"]

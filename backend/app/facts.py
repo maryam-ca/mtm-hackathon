@@ -14,9 +14,12 @@ VOCAB = {
     "event.prayer_min": "int - required prayer break minutes",
     "event.generator_required": "bool - a standby generator is mandatory",
     "event.start_time": "HH:MM 24h - event start time if stated",
-    "venue.hall": "subject=hall name; value={seats:int, price:int Rs, generator:bool}",
+    "venue.hall": "subject=hall name exactly as written; value={seats:int, price:int Rs, generator:bool, accessible:bool (true only if the text says it is step-free / ground floor / ramp access)}",
+    "venue.unavailable": "subject=hall name; value=true - that hall cannot be booked on the event date (maintenance, already booked)",
+    "event.step_free_required": "bool - the venue must have step-free (wheelchair) access",
     "food.price": "subject=meal type (e.g. standard, basic); value={price:int Rs per head, delivery:int Rs flat (0 if free)}",
     "food.preferred": "string - meal type the organisers want",
+    "food.service_charge_pct": "number - percent service charge added on top of the food total",
     "food.headcount": "int - people needing meals, only if explicitly stated",
     "food.order_qty": "int - number of meals/boxes the caterer says it will supply",
     "judge.confirmed": "int - judges confirmed",
@@ -29,14 +32,16 @@ VOCAB = {
     "constraint.other": "subject=area (venue|schedule|food|judging|budget); value=text of a rule not covered above",
 }
 
-ROLES = ["organizer", "vendor", "finance", "coordinator", "judge", "student", "other"]
+ROLES = ["organizer", "vendor", "finance", "coordinator", "judge", "student", "office", "other"]
 
 # Which sender roles may state which facts (first matching prefix wins).
 # Anyone may *propose* an expense; proposals never count against the budget.
 AUTHORITY: list[tuple[str, set[str]]] = [
+    ("event.step_free_required", {"organizer", "office"}),
     ("event.", {"organizer"}),
     ("venue.", {"vendor", "organizer"}),
     ("food.price", {"vendor", "organizer"}),
+    ("food.service", {"vendor", "organizer"}),
     ("food.order_qty", {"vendor", "organizer"}),
     ("food.", {"organizer"}),
     ("judge.late_min", {"judge", "coordinator", "organizer"}),
@@ -48,7 +53,7 @@ AUTHORITY: list[tuple[str, set[str]]] = [
 
 ROLE_LABEL = {"organizer": "an organiser", "vendor": "a vendor", "finance": "finance",
               "coordinator": "the judging coordinator", "judge": "a judge",
-              "student": "a student group", "other": "an unrecognised sender"}
+              "student": "a student group", "office": "a university office", "other": "an unrecognised sender"}
 
 
 def allowed_roles(key: str) -> set[str]:
@@ -150,3 +155,31 @@ class View:
 
     def items(self, key) -> dict[str, Any]:
         return {(f.subject or ""): f.value for f in self.active if f.key == key}
+
+
+def _tokens(s: str) -> frozenset:
+    import re
+    return frozenset(re.findall(r"\w+", (s or "").lower()))
+
+
+def canonicalize_subjects(old_facts: list, new_facts: list) -> list[tuple[str, str, str]]:
+    """The model may name the same item differently ("printing" / "printing bill", "biryani" / "biryani plate").
+    A new subject is renamed to an existing one of the SAME fact key when one's words are a subset of the other's
+    ("hall a" vs "hall b" are not). Returns [(old_name, canonical_name, key)] for the trace."""
+    registry: dict[str, list[str]] = {}
+    for f in old_facts:
+        if f.subject and f.status != "rejected":
+            registry.setdefault(f.key, []).append(f.subject)
+    renamed = []
+    for f in new_facts:
+        if not f.subject:
+            continue
+        known = registry.setdefault(f.key, [])
+        t = _tokens(f.subject)
+        match = next((k for k in known if t and (t <= _tokens(k) or _tokens(k) <= t)), None)
+        if match is None:
+            known.append(f.subject)
+        elif match != f.subject:
+            renamed.append((f.subject, match, f.key))
+            f.subject = match
+    return renamed

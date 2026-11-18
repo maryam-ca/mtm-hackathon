@@ -1,0 +1,154 @@
+{
+  "description": "judging-style pack: step-free access, hall unavailable, 10% service charge, irrelevant library notice, mixed '#n | From' format",
+  "text_file": "data/judging_pack.txt",
+  "expected": [
+    {
+      "k": "event.duration_hours",
+      "v": 4
+    },
+    {
+      "k": "event.students",
+      "v": 120
+    },
+    {
+      "k": "event.team_size",
+      "v": 4
+    },
+    {
+      "k": "event.budget_total",
+      "v": 400000
+    },
+    {
+      "k": "event.staff",
+      "v": 8
+    },
+    {
+      "k": "event.prayer_min",
+      "v": 20
+    },
+    {
+      "k": "venue.hall",
+      "s": "Seminar Room",
+      "v": {
+        "seats": 100,
+        "price": 35000,
+        "generator": false,
+        "accessible": false
+      }
+    },
+    {
+      "k": "venue.hall",
+      "s": "Hall 1",
+      "v": {
+        "seats": 160,
+        "price": 90000,
+        "generator": false,
+        "accessible": false
+      }
+    },
+    {
+      "k": "venue.hall",
+      "s": "Hall 2",
+      "v": {
+        "seats": 180,
+        "price": 110000,
+        "generator": false,
+        "accessible": true
+      }
+    },
+    {
+      "k": "venue.hall",
+      "s": "Hall 3",
+      "v": {
+        "seats": 250,
+        "price": 160000,
+        "generator": false,
+        "accessible": true
+      }
+    },
+    {
+      "k": "event.step_free_required",
+      "v": true
+    },
+    {
+      "k": "food.price",
+      "s": "biryani",
+      "v": {
+        "price": 700,
+        "delivery": 0
+      }
+    },
+    {
+      "k": "food.price",
+      "s": "biryani",
+      "v": {
+        "price": 850,
+        "delivery": 0
+      }
+    },
+    {
+      "k": "food.price",
+      "s": "sandwich",
+      "v": {
+        "price": 600,
+        "delivery": 0
+      }
+    },
+    {
+      "k": "food.service_charge_pct",
+      "v": 10
+    },
+    {
+      "k": "judge.confirmed",
+      "v": 15
+    },
+    {
+      "k": "judge.fee",
+      "v": 4000
+    },
+    {
+      "k": "judge.min_per_team",
+      "v": 20
+    },
+    {
+      "k": "judge.max_teams",
+      "v": 4
+    },
+    {
+      "k": "expense.committed",
+      "s": "trophies",
+      "v": 60000
+    },
+    {
+      "k": "expense.committed",
+      "s": "banners",
+      "v": 15000
+    },
+    {
+      "k": "proposal.expense",
+      "s": "photo booth",
+      "v": 30000
+    },
+    {
+      "k": "venue.unavailable",
+      "s": "Hall 3",
+      "v": true
+    }
+  ],
+  "roles": {
+    "Registrar": "organizer",
+    "Faisal": "vendor",
+    "disability": "office",
+    "Caterer": "vendor",
+    "Judging lead": "coordinator",
+    "Finance": "finance",
+    "Student society": "student",
+    "Library": "office"
+  },
+  "expected_plan": {
+    "valid": true,
+    "venue": "Hall 2",
+    "total": 344160,
+    "people": 136
+  }
+}

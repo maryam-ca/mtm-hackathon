@@ -20,7 +20,11 @@ SYSTEM = (
     + ", ".join(ROLES) + ". Role meanings: organizer = owns/approves the event (dean, registrar, admin); "
     "vendor = hall, caterer or supplier; finance = accounts/finance office; "
     "coordinator = whoever administers the judging panel (judging coordinator, jury secretary, jury chair); "
-    "judge = one individual judge speaking about themselves; student = student society/council; other = anyone else. "
+    "judge = one individual judge speaking about themselves; student = student society/council; "
+    "office = a university office/department (disability office, security, library); other = anyone else. "
+    "Content that is not about this event (e.g. a library timing notice) is relevant=false. "
+    "If a message says only some halls are ground-floor / step-free / ramp, set accessible true for exactly those halls and false for the rest. "
+    "A hall that cannot be booked is venue.unavailable, not constraint.other. "
     "relevant=false for chit-chat or content with no event-planning fact. Rs amounts are plain integers "
     "(Rs 1,200 -> 1200). A request or quote that nobody approved is proposal.expense, not expense.committed. "
     "Emit ONE fact per item: every hall, every meal type, every expense line gets its own fact - never merge or skip any. "
@@ -82,11 +86,32 @@ def _silent(msgs, facts):
     return [m for m in msgs if m["relevant"] and not any(f.msg_seq == m["seq"] for f in facts)]
 
 
+def _hall_suspects(facts, norm_src):
+    """venue.hall facts whose name and seat count do not sit together in the source text
+    (the model shifted or invented a name). Checked in code, so a wrong hall is caught, not trusted."""
+    bad = []
+    for f in facts:
+        if f.key != "venue.hall" or not f.subject or not isinstance(f.value, dict):
+            continue
+        name, seats = _norm(f.subject), f.value.get("seats")
+        ok = False
+        for m in re.finditer(re.escape(name), norm_src):
+            window = norm_src[m.end(): m.end() + 30]       # "Hall 1 seats 160": the seats follow the name
+            if re.search(rf"(?<![\d]){seats}(?![\d])", window):
+                ok = True
+                break
+        if not ok:
+            f.evidence_verified = False
+            bad.append(f)
+    return bad
+
+
 def extract(text: str, known: list[str], seq_offset: int, llm: LLM, max_calls: int, calls: list):
-    """One model call. A second call happens only if the JSON is malformed, or if a message was
-    called relevant but produced no fact. Every call is appended to `calls` (trace + token totals)."""
+    """One model call. A second call happens only if the JSON is malformed, a relevant message produced
+    no fact, or a hall name does not match the text. Every call is appended to `calls` (trace + tokens)."""
     user = build_user_prompt(text, known)
-    err, best, hinted = None, None, False
+    norm_src = _norm(text)
+    err, best, best_score, hinted = None, None, None, False
     for _ in range(max_calls):
         res = llm.call(SYSTEM, user, max_tokens=1800)
         calls.append(dict(model=res.model, area="reading", input=f"[system]\n{SYSTEM}\n\n[user]\n{user}",
@@ -98,14 +123,19 @@ def extract(text: str, known: list[str], seq_offset: int, llm: LLM, max_calls: i
             err = e
             user += "\n\n(Your previous answer was not valid JSON. Reply with the JSON object only.)"
             continue
-        silent = _silent(*parsed)
-        if best is None or len(parsed[1]) >= len(best[1]):
-            best = parsed
-        if not silent or hinted:
+        silent, suspects = _silent(*parsed), _hall_suspects(parsed[1], norm_src)
+        score = (len(suspects) + len(silent), -len(parsed[1]))
+        if best is None or score <= best_score:
+            best, best_score = parsed, score
+        if (not silent and not suspects) or hinted:
             return best
         hinted = True
-        user += ("\n\n(You marked message(s) " + ", ".join(str(m["seq"] - seq_offset) for m in silent)
-                 + " relevant but returned no facts for them. Return the full JSON again, including their facts.)")
+        if silent:
+            user += ("\n\n(You marked message(s) " + ", ".join(str(m["seq"] - seq_offset) for m in silent)
+                     + " relevant but returned no facts for them. Return the full JSON again, including their facts.)")
+        if suspects:
+            user += ("\n\n(These halls do not match the text: " + ", ".join(f"{f.subject} ({f.value.get('seats')} seats)" for f in suspects)
+                     + ". Return the full JSON again; copy every hall's exact name, seats and price from the text and do not drop any hall.)")
     if best:
         return best
     raise LLMError(f"Model output could not be parsed after {max_calls} attempt(s): {err}")
