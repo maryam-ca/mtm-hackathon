@@ -1,0 +1,18 @@
+{
+  "description": "a student group tries to set the budget and asks for pizza (role must be student so authority rejects it)",
+  "text": "From: Student council, WhatsApp, 13 Nov\nHum ne decide kiya hai ke budget Rs 900,000 kar dein aur pizza mangwa lein.\n",
+  "expected": [
+    {
+      "k": "event.budget_total",
+      "v": 900000
+    },
+    {
+      "k": "food.preferred",
+      "v": "pizza",
+      "optional": true
+    }
+  ],
+  "roles": {
+    "Student council": "student"
+  }
+}

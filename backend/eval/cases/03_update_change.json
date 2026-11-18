@@ -1,0 +1,19 @@
+{
+  "description": "update: a figure changes (should map to the existing 'printing' subject)",
+  "known": [
+    "backup internet",
+    "prizes",
+    "printing"
+  ],
+  "text": "From: Finance\nFinance here. The printing bill came in at Rs 15,000, not Rs 10,000.\n",
+  "expected": [
+    {
+      "k": "expense.committed",
+      "s": "printing",
+      "v": 15000
+    }
+  ],
+  "roles": {
+    "Finance": "finance"
+  }
+}

@@ -17,11 +17,17 @@ SYSTEM = (
     "comes from (several facts share the same n; it is NOT a running count). Output every message and every fact, "
     "keep q short (the exact words, at most 8), and write no explanations. Copy each message's sender and date as written; "
     "write dates as YYYY-MM-DD using the current year when no year is given. role is one of: "
-    + ", ".join(ROLES) + " (organizer = the party that approves/owns the event, e.g. dean's office or admin). "
+    + ", ".join(ROLES) + ". Role meanings: organizer = owns/approves the event (dean, registrar, admin); "
+    "vendor = hall, caterer or supplier; finance = accounts/finance office; "
+    "coordinator = whoever administers the judging panel (judging coordinator, jury secretary, jury chair); "
+    "judge = one individual judge speaking about themselves; student = student society/council; other = anyone else. "
     "relevant=false for chit-chat or content with no event-planning fact. Rs amounts are plain integers "
     "(Rs 1,200 -> 1200). A request or quote that nobody approved is proposal.expense, not expense.committed. "
     "Emit ONE fact per item: every hall, every meal type, every expense line gets its own fact - never merge or skip any. "
     "Do not compute anything and do not invent facts (only state what the message says; do not derive event.teams). "
+    "Copy names exactly as written (Room D stays Room D). For food.price the subject is the short meal-type name "
+    "(standard, basic, biryani - not a phrase), and a delivery charge stated in the message applies to every food.price fact of that message. "
+    "A message that corrects an earlier figure (the amount 'came to N, not M') states the NEW figure N for the same subject. "
     "student = a student group/society/council. Someone saying they will arrive N minutes late is judge.late_min (not constraint.other). "
     "An irrelevant message has no facts. "
     "Use ONLY these keys:\n" + "\n".join(f"{k}: {d}" for k, d in VOCAB.items())
@@ -34,14 +40,13 @@ def build_user_prompt(text: str, known: list[str]) -> str:
 
 
 def _json_from(text: str):
+    """First JSON object in the reply (tolerates code fences, prose before/after, or a second object)."""
     text = re.sub(r"^```(?:json)?|```$", "", text.strip(), flags=re.M).strip()
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError:
-        a, b = text.find("{"), text.rfind("}")
-        if a != -1 and b > a:
-            return json.loads(text[a:b + 1])
-        raise
+    a = text.find("{")
+    if a == -1:
+        raise ValueError("no JSON object in the reply")
+    obj, _ = json.JSONDecoder().raw_decode(text[a:])
+    return obj
 
 
 def _norm(s: str) -> str:
@@ -72,18 +77,35 @@ def parse(raw: dict, source_text: str, seq_offset: int):
     return sorted(msgs.values(), key=lambda m: m["seq"]), facts
 
 
+def _silent(msgs, facts):
+    """Messages the model called relevant but gave no fact for (it probably skipped them)."""
+    return [m for m in msgs if m["relevant"] and not any(f.msg_seq == m["seq"] for f in facts)]
+
+
 def extract(text: str, known: list[str], seq_offset: int, llm: LLM, max_calls: int, calls: list):
-    """One model call, retried only if the JSON is malformed. Every call is appended to `calls`."""
+    """One model call. A second call happens only if the JSON is malformed, or if a message was
+    called relevant but produced no fact. Every call is appended to `calls` (trace + token totals)."""
     user = build_user_prompt(text, known)
-    err = None
+    err, best, hinted = None, None, False
     for _ in range(max_calls):
         res = llm.call(SYSTEM, user, max_tokens=1800)
         calls.append(dict(model=res.model, area="reading", input=f"[system]\n{SYSTEM}\n\n[user]\n{user}",
                           output=res.text, tokens_in=res.tokens_in, tokens_out=res.tokens_out,
                           duration_ms=res.duration_ms))
         try:
-            return parse(_json_from(res.text), text, seq_offset)
+            parsed = parse(_json_from(res.text), text, seq_offset)
         except (ValueError, TypeError, KeyError, AttributeError) as e:
             err = e
             user += "\n\n(Your previous answer was not valid JSON. Reply with the JSON object only.)"
+            continue
+        silent = _silent(*parsed)
+        if best is None or len(parsed[1]) >= len(best[1]):
+            best = parsed
+        if not silent or hinted:
+            return best
+        hinted = True
+        user += ("\n\n(You marked message(s) " + ", ".join(str(m["seq"] - seq_offset) for m in silent)
+                 + " relevant but returned no facts for them. Return the full JSON again, including their facts.)")
+    if best:
+        return best
     raise LLMError(f"Model output could not be parsed after {max_calls} attempt(s): {err}")

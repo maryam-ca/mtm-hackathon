@@ -1,0 +1,22 @@
+{
+  "description": "UNSEEN-style pack: new numbers, senders, wording, a mandatory generator, an irrelevant message",
+  "text": "From: Registrar's office, email, 4 Nov\nConfirmed: a 5-hour hackathon for 120 students, teams of 4. Total budget is Rs 500,000 including everything. Eight staff will be on duty. A 20-minute prayer break is required. A standby generator is mandatory at the venue.\n\nFrom: Skyline Venues, email, 1 Nov\nAuditorium X seats 150 at Rs 90,000. Hall Y seats 250 at Rs 130,000. Hall Z seats 400 at Rs 210,000. Hall Y and Hall Z have a standby generator.\n\nFrom: Royal Caterers, WhatsApp, 28 Oct\nBiryani plate Rs 800 per head.\n\nFrom: Royal Caterers, WhatsApp, 9 Nov\nAssalam o alaikum! Biryani plate ab Rs 900 per head ka hai, aur basic lunch box Rs 650. Delivery Rs 5,000 alag se lagegi.\n\nFrom: Jury secretary, email, 8 Nov\n12 judges have confirmed. Each gets an honorarium of Rs 4,000. A judge needs 10 minutes per team and can cover at most four teams.\n\nFrom: Accounts office, email, 6 Nov\nAlready paid from the event budget: banners Rs 15,000, trophies Rs 40,000.\n\nFrom: Student council, WhatsApp, 10 Nov\nCan we hire a photographer for the event? The quote is Rs 30,000.\n\nFrom: Rahul (volunteer), WhatsApp, 11 Nov\nBhai kal ki cricket match ka score kya tha?\n",
+  "expected": [
+    {"k": "event.duration_hours", "v": 5}, {"k": "event.students", "v": 120}, {"k": "event.team_size", "v": 4},
+    {"k": "event.budget_total", "v": 500000}, {"k": "event.staff", "v": 8}, {"k": "event.prayer_min", "v": 20},
+    {"k": "event.generator_required", "v": true},
+    {"k": "venue.hall", "s": "Auditorium X", "v": {"seats": 150, "price": 90000, "generator": false}},
+    {"k": "venue.hall", "s": "Hall Y", "v": {"seats": 250, "price": 130000, "generator": true}},
+    {"k": "venue.hall", "s": "Hall Z", "v": {"seats": 400, "price": 210000, "generator": true}},
+    {"k": "food.price", "s": "biryani", "v": {"price": 800, "delivery": 0}},
+    {"k": "food.price", "s": "biryani", "v": {"price": 900, "delivery": 5000}},
+    {"k": "food.price", "s": "basic", "v": {"price": 650, "delivery": 5000}},
+    {"k": "judge.confirmed", "v": 12}, {"k": "judge.fee", "v": 4000}, {"k": "judge.min_per_team", "v": 10}, {"k": "judge.max_teams", "v": 4},
+    {"k": "expense.committed", "s": "banners", "v": 15000},
+    {"k": "expense.committed", "s": "trophies", "v": 40000},
+    {"k": "proposal.expense", "s": "photographer", "v": 30000}
+  ],
+  "roles": {"Registrar": "organizer", "Skyline": "vendor", "Royal Caterers": "vendor", "Jury secretary": "coordinator",
+            "Accounts": "finance", "Student council": "student", "Rahul": "other"},
+  "expected_plan": {"valid": true, "venue": "Hall Y", "total": 344400, "people": 136}
+}

@@ -1,0 +1,13 @@
+{
+  "description": "Roman Urdu: organiser raises the budget",
+  "text": "From: Dean's office, WhatsApp, 15 Nov\nBhai budget ab Rs 700,000 kar diya gaya hai, sab kuch mila kar.\n",
+  "expected": [
+    {
+      "k": "event.budget_total",
+      "v": 700000
+    }
+  ],
+  "roles": {
+    "Dean": "organizer"
+  }
+}

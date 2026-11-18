@@ -1,0 +1,17 @@
+{
+  "description": "update: plausible but wrong message (vendor shrinks the order)",
+  "known": [
+    "standard",
+    "basic"
+  ],
+  "text": "From: Caterer\nCaterer: I have rounded your order down to 100 boxes to keep the cost low.\n",
+  "expected": [
+    {
+      "k": "food.order_qty",
+      "v": 100
+    }
+  ],
+  "roles": {
+    "Caterer": "vendor"
+  }
+}

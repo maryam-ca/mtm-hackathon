@@ -1,0 +1,24 @@
+{
+  "description": "official sample pack (8 messages, English + Roman Urdu, stale price, proposal, late judge)",
+  "text_file": "data/sample_pack.txt",
+  "expected": [
+    {"k": "event.students", "v": 150}, {"k": "event.team_size", "v": 3}, {"k": "event.duration_hours", "v": 4},
+    {"k": "event.budget_total", "v": 650000}, {"k": "event.staff", "v": 10}, {"k": "event.prayer_min", "v": 15},
+    {"k": "venue.hall", "s": "Room D", "v": {"seats": 80, "price": 40000, "generator": false}},
+    {"k": "venue.hall", "s": "Hall A", "v": {"seats": 200, "price": 120000, "generator": false}},
+    {"k": "venue.hall", "s": "Hall B", "v": {"seats": 200, "price": 150000, "generator": true}},
+    {"k": "venue.hall", "s": "Hall C", "v": {"seats": 300, "price": 220000, "generator": true}},
+    {"k": "food.price", "s": "standard", "v": {"price": 1000, "delivery": 0}},
+    {"k": "food.price", "s": "standard", "v": {"price": 1200, "delivery": 0}},
+    {"k": "food.price", "s": "basic", "v": {"price": 800, "delivery": 0}},
+    {"k": "judge.confirmed", "v": 20}, {"k": "judge.fee", "v": 5000}, {"k": "judge.min_per_team", "v": 15}, {"k": "judge.max_teams", "v": 3},
+    {"k": "expense.committed", "s": "prizes", "v": 100000},
+    {"k": "expense.committed", "s": "backup internet", "v": 20000},
+    {"k": "expense.committed", "s": "printing", "v": 10000},
+    {"k": "proposal.expense", "s": "DJ", "v": 50000},
+    {"k": "judge.late_min", "v": 10}
+  ],
+  "roles": {"Dean": "organizer", "Margalla": "vendor", "Caterer": "vendor", "Judging coordinator": "coordinator",
+            "Finance": "finance", "Student society": "student", "A judge": "judge"},
+  "expected_plan": {"valid": true, "venue": "Hall A", "total": 547400, "people": 177}
+}

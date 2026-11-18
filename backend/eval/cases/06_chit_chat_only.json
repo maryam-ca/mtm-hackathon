@@ -1,0 +1,8 @@
+{
+  "description": "irrelevant chit-chat: NO facts must be invented",
+  "text": "From: Ali, WhatsApp, 12 Nov\nSalam all! Lunch ke baad chai ka plan hai? Weather bohat acha hai aaj.\n",
+  "expected": [],
+  "roles": {
+    "Ali": "other"
+  }
+}
