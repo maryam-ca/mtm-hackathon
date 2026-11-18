@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+sqlalchemy>=2
+psycopg[binary]>=3.2
+pydantic-settings
+anthropic
+openai
+python-multipart
+pytest

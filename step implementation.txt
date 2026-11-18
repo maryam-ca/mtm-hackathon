@@ -1,0 +1,172 @@
+# **Complete Project To-Do List — Mind to Machine Hackathon**
+
+Master implementation checklist · 18 November 2026 · Based on the official 4-page Student Brief
+
+This is the complete execution checklist for building, testing, documenting and submitting the project.
+
+It covers the entire lifecycle:
+
+1. Project setup and team coordination.
+2. Requirements and architecture.
+3. AI model integration.
+4. Message ingestion and extraction.
+5. Fact management and conflict detection.
+6. All five planning modules.
+7. Constraint validation.
+8. Incremental updates.
+9. Model-call trace and token accounting.
+10. User interface.
+11. Testing and performance.
+12. Git and final submission.
+13. Judge preparation.
+
+**How to use it:** Check off each item as it is completed. Treat the P0 items as mandatory; do not sacrifice them for optional interface improvements.
+
+## **Master progress tracker**
+
+**Overall project completion**
+
+# **0%**
+
+0 completed
+
+324 remaining
+
+21 workstreams
+
+324 tasks
+
+21 phases
+
+01\. Project initialization0 / 9 completed0%
+
+Mark phase complete
+
+Create GitHub repository
+
+Create project folder structure
+
+Initialize Python environment
+
+Install dependencies
+
+Create .env and .gitignore
+
+Configure model credentials
+
+Test model connectivity
+
+Confirm model token reporting
+
+Create initial commit and push
+
+02\. Requirements and architecture0 / 10 completed0%
+
+03\. Message ingestion0 / 11 completed0%
+
+04\. AI model and extraction0 / 18 completed0%
+
+05\. Fact store and evidence0 / 14 completed0%
+
+06\. Conflict and decision engine0 / 16 completed0%
+
+07\. Venue planning0 / 13 completed0%
+
+08\. Schedule planning0 / 14 completed0%
+
+09\. Food planning0 / 15 completed0%
+
+10\. Judging planning0 / 14 completed0%
+
+11\. Budget planning0 / 17 completed0%
+
+12\. Cross-area validation0 / 14 completed0%
+
+13\. Incremental updates0 / 20 completed0%
+
+14\. Trace and token accounting0 / 19 completed0%
+
+15\. Rejected messages and history0 / 12 completed0%
+
+16\. User interface0 / 22 completed0%
+
+17\. Reports and exports0 / 12 completed0%
+
+18\. Testing0 / 25 completed0%
+
+19\. Performance and security0 / 14 completed0%
+
+20\. Git and final submission0 / 20 completed0%
+
+21\. Test-day and judge preparation0 / 15 completed0%
+
+Expand all phasesCollapse allReset all progress
+
+## **2. Mandatory release gates**
+
+Before declaring the project complete, these five gates must pass.
+
+Gate 1
+
+**Correctness**
+
+- All five planning areas generated.
+- Every hard constraint validated.
+- Budget within approved limit.
+- No incorrect message silently accepted.
+
+  Gate 2
+
+  **Performance**
+- Initial run under 120 seconds.
+- Every update under 60 seconds.
+- Maximum five model calls per update.
+
+  Gate 3
+
+  **Transparency**
+- Complete model-call trace.
+- Actual model names and token counts.
+- Original evidence and rejection explanations.
+
+  Gate 4
+
+  **Update handling**
+- New messages processed with the same command.
+- Only affected areas recalculated.
+- Previous valid state preserved when changes fail validation.
+
+  Gate 5
+
+  **Submission**
+- Clean Git status.
+- Correct submitted commit hash.
+- Repository pushed before 1:25 PM.
+- Final plan and full trace saved.
+
+## **3. Important decisions to settle during development**
+
+These points are not fully specified in the official brief, so the system should not invent answers:
+
+1. **Meal headcount:** The number of people requiring meals must be established from messages. Do not automatically assume 180 or 177 for the actual event.
+2. **Venue generator:** Hall B and Hall C have confirmed standby generators; whether a generator is mandatory depends on the messages and applicable rules.
+3. **Food selection:** Standard and basic meal prices are available, but the preferred meal type must be established.
+4. **DJ:** The Rs 50,000 request is a proposal, not an approved expense.
+5. **Judge lateness:** One judge may arrive 10 minutes late; the system should retain a contingency rather than assume the delay is certain.
+6. **Approval authority:** Configure who can approve event-wide changes, financial expenditure and operational decisions. Do not assume every sender has universal authority.
+
+## **4. Definition of complete**
+
+The project is complete when:
+
+- The entire checklist is finished.
+- All five planning areas work together.
+- The official sample pack passes.
+- The two practice updates behave correctly.
+- The system catches the plausible but wrong message.
+- An unseen message pack can be processed without manually editing code.
+- The plan, trace and rejected messages are available in the interface and exported files.
+- All runtime and model-call limits are respected.
+- All three team members can explain the architecture.
+
+**My recommendation:** Follow the 21 phases in order, starting with project initialization and message ingestion. Do not begin polishing the dashboard until the extraction, conflict engine and planning calculations are working reliably.
